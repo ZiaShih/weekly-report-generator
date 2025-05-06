@@ -138,10 +138,23 @@ class WeeklyReportGenerator:
         
         # 统计招聘数据
         self.recruitment_stats = {
-            'resume': self.data['通过简历数量'].sum(),
-            'interview': self.data['面试人员数量'].sum(),
-            'pass': self.data['面试通过人员数量'].sum()
+            'resume': int(self.data['通过简历数量'].sum()),
+            'interview': int(self.data['面试人员数量'].sum()),
+            'pass': int(self.data['面试通过人员数量'].sum())
         }
+
+        # 统计数据
+        total_people = self.data['姓名'].nunique()
+        pool_df = self.data[self.data['工作类型'] == '入池']
+        pool_people = pool_df['姓名'].nunique()
+        pool_departments = self.data['入池部门'].dropna().unique()
+        pool_departments_str = '、'.join(pool_departments)
+        pool_departments_count = len(pool_departments)
+        project_names = self.data['项目名称'].dropna().unique()
+        # 排除"其他"
+        project_names = [name for name in project_names if '其他' not in str(name)]
+        project_names_str = '、'.join(project_names)
+        project_count = len(project_names)
 
     def _header_footer(self, canvas, doc):
         """添加页眉页脚"""
@@ -182,7 +195,9 @@ class WeeklyReportGenerator:
         pool_departments = self.data['入池部门'].dropna().unique()
         pool_departments_str = '、'.join(pool_departments)
         pool_departments_count = len(pool_departments)
-        project_names = self.data['项目名称/入池机构-项目名称'].unique()
+        project_names = self.data['项目名称'].dropna().unique()
+        # 排除"其他"
+        project_names = [name for name in project_names if '其他' not in str(name)]
         project_names_str = '、'.join(project_names)
         project_count = len(project_names)
 
@@ -190,10 +205,10 @@ class WeeklyReportGenerator:
         def is_other_project(name):
             return '其他' in str(name)
         # 入项、入池分为"常规项目"和"其他项目"
-        regular_initem = self.grouped_data['入项'][~self.grouped_data['入项']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-        other_initem = self.grouped_data['入项'][self.grouped_data['入项']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-        regular_pool = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-        other_pool = self.grouped_data['入池'][self.grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
+        regular_initem = self.grouped_data['入项'][~self.grouped_data['入项']['项目名称'].apply(is_other_project)]
+        other_initem = self.grouped_data['入项'][self.grouped_data['入项']['项目名称'].apply(is_other_project)]
+        regular_pool = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称'].apply(is_other_project)]
+        other_pool = self.grouped_data['入池'][self.grouped_data['入池']['项目名称'].apply(is_other_project)]
 
         # 标题（两行，红色大号加粗）
         title1 = Paragraph("北银金融科技有限责任公司", ParagraphStyle(
@@ -247,7 +262,7 @@ class WeeklyReportGenerator:
         story.append(Paragraph("1)项目进展", self.styles['ChineseBold']))
         if not regular_initem.empty:
             for _, row in regular_initem.iterrows():
-                project_title = f"<b>•{row['项目名称/入池机构-项目名称']}（{row['项目阶段']}）</b>"
+                project_title = f"<b>•{row['项目名称']}（{row['项目阶段']}）</b>"
                 story.append(Paragraph(project_title, self.styles['ChineseBold']))
                 if isinstance(row['last_week_work'], list):
                     filtered_tasks = [self._remove_leading_number(task) for task in row['last_week_work'] if task.strip()]
@@ -258,11 +273,11 @@ class WeeklyReportGenerator:
         story.append(Paragraph("2)入池工作", self.styles['ChineseBold']))
         story.append(Paragraph(f"目前组内有{total_people}人，{pool_people}人入池。", self.styles['ChineseContent']))
         # 过滤掉"其他"项目
-        pool_no_other = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
+        pool_no_other = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称'].apply(is_other_project)]
         for dept, dept_group in pool_no_other.groupby('入池部门'):
             dept_people = dept_group['姓名'].nunique()
             story.append(Paragraph(f"•{dept}（{dept_people}人）", self.styles['ChineseBold']))
-            for project_name, proj_group in dept_group.groupby('项目名称/入池机构-项目名称'):
+            for project_name, proj_group in dept_group.groupby('项目名称'):
                 project_stage = proj_group.iloc[0]['项目阶段']
                 story.append(Paragraph(f"{project_name}（{project_stage}）", self.styles['ChineseList']))
                 all_tasks = []
@@ -274,7 +289,7 @@ class WeeklyReportGenerator:
             story.append(Spacer(1, 2))
         # 3)其他工作（加粗）
         story.append(Paragraph("3)其他工作", self.styles['ChineseBold']))
-        other_projects = self.data[self.data['项目名称/入池机构-项目名称'].str.contains('其他', na=False)]
+        other_projects = self.data[self.data['项目名称'].str.contains('其他', na=False)]
         if not other_projects.empty:
             for _, row in other_projects.iterrows():
                 tasks = row['last_week_work'] if isinstance(row['last_week_work'], list) else []
@@ -300,7 +315,7 @@ class WeeklyReportGenerator:
         story.append(Paragraph("1)项目进展", self.styles['ChineseBold']))
         if not regular_initem.empty:
             for _, row in regular_initem.iterrows():
-                project_title = f"<b>•{row['项目名称/入池机构-项目名称']}（{row['项目阶段']}）</b>"
+                project_title = f"<b>•{row['项目名称']}（{row['项目阶段']}）</b>"
                 story.append(Paragraph(project_title, self.styles['ChineseBold']))
                 if isinstance(row['next_week_plan'], list):
                     filtered_plans = [self._remove_leading_number(task) for task in row['next_week_plan'] if task.strip()]
@@ -311,11 +326,11 @@ class WeeklyReportGenerator:
         story.append(Paragraph("2)入池工作", self.styles['ChineseBold']))
         story.append(Paragraph(f"目前组内有{total_people}人，{pool_people}人入池。", self.styles['ChineseContent']))
         # 过滤掉"其他"项目
-        pool_no_other = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
+        pool_no_other = self.grouped_data['入池'][~self.grouped_data['入池']['项目名称'].apply(is_other_project)]
         for dept, dept_group in pool_no_other.groupby('入池部门'):
             dept_people = dept_group['姓名'].nunique()
             story.append(Paragraph(f"•{dept}（{dept_people}人）", self.styles['ChineseBold']))
-            for project_name, proj_group in dept_group.groupby('项目名称/入池机构-项目名称'):
+            for project_name, proj_group in dept_group.groupby('项目名称'):
                 project_stage = proj_group.iloc[0]['项目阶段']
                 story.append(Paragraph(f"{project_name}（{project_stage}）", self.styles['ChineseList']))
                 all_tasks = []
@@ -327,7 +342,7 @@ class WeeklyReportGenerator:
             story.append(Spacer(1, 2))
         # 3)其他工作（加粗）
         story.append(Paragraph("3)其他工作", self.styles['ChineseBold']))
-        other_projects = self.data[self.data['项目名称/入池机构-项目名称'].str.contains('其他', na=False)]
+        other_projects = self.data[self.data['项目名称'].str.contains('其他', na=False)]
         if not other_projects.empty:
             for _, row in other_projects.iterrows():
                 plans = row['next_week_plan'] if isinstance(row['next_week_plan'], list) else []
@@ -368,7 +383,7 @@ def generate_word_report(excel_path, output_path, issue, date_str):
         return []
     df['last_week_work'] = df['上周三至本周二工作内容'].apply(process_content)
     df['next_week_plan'] = df['本周三至下周二工作计划'].apply(process_content)
-    other_projects = df[df['项目名称/入池机构-项目名称'].str.contains('其他', na=False)]
+    other_projects = df[df['项目名称'].str.contains('其他', na=False)]
 
     # 统计数据
     total_people = df['姓名'].nunique()
@@ -377,7 +392,9 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     pool_departments = df['入池部门'].dropna().unique()
     pool_departments_str = '、'.join(pool_departments)
     pool_departments_count = len(pool_departments)
-    project_names = df['项目名称/入池机构-项目名称'].unique()
+    project_names = df['项目名称'].dropna().unique()
+    # 排除"其他"
+    project_names = [name for name in project_names if '其他' not in str(name)]
     project_names_str = '、'.join(project_names)
     project_count = len(project_names)
     grouped_data = {
@@ -385,9 +402,9 @@ def generate_word_report(excel_path, output_path, issue, date_str):
         '入项': df[df['工作类型'] == '入项']
     }
     recruitment_stats = {
-        'resume': df['通过简历数量'].sum(),
-        'interview': df['面试人员数量'].sum(),
-        'pass': df['面试通过人员数量'].sum()
+        'resume': int(df['通过简历数量'].sum()),
+        'interview': int(df['面试人员数量'].sum()),
+        'pass': int(df['面试通过人员数量'].sum())
     }
     def remove_leading_number(text):
         return re.sub(r'^[\d一二三四五六七八九十]+[\.|、|\)|\s]+', '', str(text).strip())
@@ -395,10 +412,10 @@ def generate_word_report(excel_path, output_path, issue, date_str):
         return '其他' in str(name)
     
     # 入项、入池分为"常规项目"和"其他项目"，此时所有DataFrame都带有last_week_work/next_week_plan
-    regular_initem = grouped_data['入项'][~grouped_data['入项']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-    other_initem = grouped_data['入项'][grouped_data['入项']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-    regular_pool = grouped_data['入池'][~grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
-    other_pool = grouped_data['入池'][grouped_data['入池']['项目名称/入池机构-项目名称'].apply(is_other_project)]
+    regular_initem = grouped_data['入项'][~grouped_data['入项']['项目名称'].apply(is_other_project)]
+    other_initem = grouped_data['入项'][grouped_data['入项']['项目名称'].apply(is_other_project)]
+    regular_pool = grouped_data['入池'][~grouped_data['入池']['项目名称'].apply(is_other_project)]
+    other_pool = grouped_data['入池'][grouped_data['入池']['项目名称'].apply(is_other_project)]
 
     doc = Document()
     style = doc.styles['Normal']
@@ -497,12 +514,20 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     if not regular_initem.empty:
         for _, row in regular_initem.iterrows():
             p = doc.add_paragraph()
-            run = p.add_run(f'•{row["项目名称/入池机构-项目名称"]}（{row["项目阶段"]}）')
+            run = p.add_run(f'•{row["项目名称"]}（{row["项目阶段"]}）')
             run.bold = True
             run.font.size = Pt(11)
             p.paragraph_format.space_after = Pt(1)
             p.paragraph_format.first_line_indent = Cm(0)
             p.paragraph_format.line_spacing = 1.5
+            # 新增：展示项目说明（上周三至本周二工作内容）
+            if isinstance(row['last_week_work'], list):
+                filtered_tasks = [remove_leading_number(task) for task in row['last_week_work'] if task.strip()]
+                for idx, task in enumerate(filtered_tasks, 1):
+                    para = doc.add_paragraph(f'{idx}、{task}')
+                    para.paragraph_format.first_line_indent = Cm(0)
+                    para.paragraph_format.space_after = Pt(1)
+                    para.paragraph_format.line_spacing = 1.5
     # 三级标题
     p = doc.add_paragraph()
     run = p.add_run('2)入池工作')
@@ -517,14 +542,14 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     p.paragraph_format.space_after = Pt(1)
     p.paragraph_format.first_line_indent = Cm(1)
     p.paragraph_format.line_spacing = 1.5
-    pool_no_other = pool_df[~pool_df['项目名称/入池机构-项目名称'].apply(is_other_project)]
+    pool_no_other = pool_df[~pool_df['项目名称'].apply(is_other_project)]
     for dept, dept_group in pool_no_other.groupby('入池部门'):
         dept_people = dept_group['姓名'].nunique()
         para = doc.add_paragraph(f'•{dept}（{dept_people}人）')
         para.paragraph_format.first_line_indent = Cm(0)
         para.paragraph_format.space_after = Pt(1)
         para.paragraph_format.line_spacing = 1.5
-        for project_name, proj_group in dept_group.groupby('项目名称/入池机构-项目名称'):
+        for project_name, proj_group in dept_group.groupby('项目名称'):
             project_stage = proj_group.iloc[0]['项目阶段']
             para = doc.add_paragraph()
             run = para.add_run(f'{project_name}（{project_stage}）')
@@ -594,7 +619,7 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     if not regular_initem.empty:
         for _, row in regular_initem.iterrows():
             p = doc.add_paragraph()
-            run = p.add_run(f'•{row["项目名称/入池机构-项目名称"]}（{row["项目阶段"]}）')
+            run = p.add_run(f'•{row["项目名称"]}（{row["项目阶段"]}）')
             run.bold = True
             run.font.size = Pt(11)
             p.paragraph_format.space_after = Pt(1)
@@ -621,14 +646,14 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     p.paragraph_format.space_after = Pt(1)
     p.paragraph_format.first_line_indent = Cm(1)
     p.paragraph_format.line_spacing = 1.5
-    pool_no_other = pool_df[~pool_df['项目名称/入池机构-项目名称'].apply(is_other_project)]
+    pool_no_other = pool_df[~pool_df['项目名称'].apply(is_other_project)]
     for dept, dept_group in pool_no_other.groupby('入池部门'):
         dept_people = dept_group['姓名'].nunique()
         para = doc.add_paragraph(f'•{dept}（{dept_people}人）')
         para.paragraph_format.first_line_indent = Cm(0)
         para.paragraph_format.space_after = Pt(1)
         para.paragraph_format.line_spacing = 1.5
-        for project_name, proj_group in dept_group.groupby('项目名称/入池机构-项目名称'):
+        for project_name, proj_group in dept_group.groupby('项目名称'):
             project_stage = proj_group.iloc[0]['项目阶段']
             para = doc.add_paragraph()
             run = para.add_run(f'{project_name}（{project_stage}）')
@@ -653,7 +678,7 @@ def generate_word_report(excel_path, output_path, issue, date_str):
     p.paragraph_format.space_after = Pt(2)
     p.paragraph_format.first_line_indent = Cm(0)
     p.paragraph_format.line_spacing = 1.5
-    other_projects = df[df['项目名称/入池机构-项目名称'].str.contains('其他', na=False)]
+    other_projects = df[df['项目名称'].str.contains('其他', na=False)]
     if not other_projects.empty:
         for _, row in other_projects.iterrows():
             if isinstance(row['next_week_plan'], list):
