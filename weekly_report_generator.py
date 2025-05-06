@@ -4,7 +4,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.lib.units import inch
 from reportlab.platypus import Table, TableStyle
@@ -17,10 +16,7 @@ from docx.oxml.ns import qn
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 
-# 方法一：使用系统ttf字体
-pdfmetrics.registerFont(TTFont('SimHei', '/System/Library/Fonts/STHeiti Medium.ttc'))
-
-# 方法二：使用内置中文字体（适合表格/段落）
+# 只用内置中文字体，兼容所有平台
 pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
 
 class WeeklyReportGenerator:
@@ -507,14 +503,6 @@ def generate_word_report(excel_path, output_path, issue, date_str):
             p.paragraph_format.space_after = Pt(1)
             p.paragraph_format.first_line_indent = Cm(0)
             p.paragraph_format.line_spacing = 1.5
-            # 新增：展示项目下的工作内容，与PDF一致
-            if isinstance(row['last_week_work'], list):
-                filtered_tasks = [remove_leading_number(task) for task in row['last_week_work'] if task.strip()]
-                for idx, task in enumerate(filtered_tasks, 1):
-                    para = doc.add_paragraph(f'{idx}、{task}')
-                    para.paragraph_format.first_line_indent = Cm(0)
-                    para.paragraph_format.space_after = Pt(1)
-                    para.paragraph_format.line_spacing = 1.5
     # 三级标题
     p = doc.add_paragraph()
     run = p.add_run('2)入池工作')

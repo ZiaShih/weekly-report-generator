@@ -79,7 +79,8 @@ if uploaded_file:
         with col2:
             date_str = st.text_input("日期", value="", placeholder="如：2025年5月20日")
         submitted = st.form_submit_button("生成周报")
-    if submitted and issue and date_str:
+    # 只要生成过一次，下载按钮就一直显示
+    if (submitted and issue and date_str) or ("pdf" in st.session_state and "word" in st.session_state):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_xlsx:
             df.to_excel(tmp_xlsx.name, index=False)
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf, \
