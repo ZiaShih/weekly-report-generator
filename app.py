@@ -13,10 +13,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 配置CORS
-st.set_option('server.enableCORS', False)
-st.set_option('server.enableXsrfProtection', False)
-
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
