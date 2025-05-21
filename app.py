@@ -5,11 +5,21 @@ import os
 import logging
 from weekly_report_generator import WeeklyReportGenerator, generate_word_report
 
+# 配置Streamlit
+st.set_page_config(
+    page_title="周报生成器",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# 配置CORS
+st.set_option('server.enableCORS', False)
+st.set_option('server.enableXsrfProtection', False)
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-st.set_page_config(page_title="周报生成器", layout="wide")
 
 # 注入自定义CSS，极简扁平化科技风
 st.markdown('''
