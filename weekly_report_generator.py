@@ -15,9 +15,20 @@ from docx.shared import Pt, Cm, RGBColor
 from docx.oxml.ns import qn
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
+import logging
 
 # 只用内置中文字体，兼容所有平台
-pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+try:
+    pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+except Exception as e:
+    logging.error(f"注册字体失败: {str(e)}")
+    # 尝试使用其他中文字体
+    try:
+        pdfmetrics.registerFont(UnicodeCIDFont('SimSun'))
+    except Exception as e:
+        logging.error(f"注册备用字体失败: {str(e)}")
+        # 如果都失败了，使用默认字体
+        logging.warning("使用默认字体")
 
 class WeeklyReportGenerator:
     def __init__(self, excel_path, output_path, issue, date_str):
@@ -31,86 +42,100 @@ class WeeklyReportGenerator:
         
     def _setup_styles(self):
         """设置PDF样式"""
-        # 标题：红色、加粗、居中、较大字号
-        self.styles.add(ParagraphStyle(
-            name='ChineseTitle',
-            fontName='STSong-Light',
-            fontSize=20,
-            leading=28,
-            alignment=1,  # 居中
-            textColor=colors.red,
-            spaceAfter=10,
-            spaceBefore=10,
-            bold=True
-        ))
-        # 副标题：黑色、居中
-        self.styles.add(ParagraphStyle(
-            name='ChineseSubtitle',
-            fontName='STSong-Light',
-            fontSize=14,
-            leading=20,
-            alignment=1,  # 居中
-            textColor=colors.black,
-            spaceAfter=10
-        ))
-        # 一级标题：黑色、加粗、左对齐
-        self.styles.add(ParagraphStyle(
-            name='ChineseHeading1',
-            fontName='STSong-Light',
-            fontSize=13,
-            leading=18,
-            alignment=0,  # 左对齐
-            textColor=colors.black,
-            spaceBefore=10,
-            spaceAfter=6,
-            bold=True
-        ))
-        # 加粗样式
-        self.styles.add(ParagraphStyle(
-            name='ChineseBold',
-            fontName='STSong-Light',
-            fontSize=11,
-            leading=18,
-            alignment=0,
-            textColor=colors.black,
-            spaceAfter=3,
-            spaceBefore=3,
-            bold=True
-        ))
-        # 正文：黑色、常规、首行缩进
-        self.styles.add(ParagraphStyle(
-            name='ChineseContent',
-            fontName='STSong-Light',
-            fontSize=11,
-            leading=18,
-            alignment=0,
-            firstLineIndent=24,
-            textColor=colors.black,
-            spaceAfter=3
-        ))
-        # 列表项：无缩进
-        self.styles.add(ParagraphStyle(
-            name='ChineseList',
-            fontName='STSong-Light',
-            fontSize=11,
-            leading=18,
-            alignment=0,
-            leftIndent=12,
-            textColor=colors.black,
-            spaceAfter=2
-        ))
-        self.styles.add(ParagraphStyle(
-            name='Header',
-            fontName='STSong-Light',
-            fontSize=9,
-            alignment=1
-        ))
-        self.styles.add(ParagraphStyle(
-            name='Footer',
-            fontName='STSong-Light',
-            fontSize=9,
-            alignment=1
-        ))
+        try:
+            # 标题：红色、加粗、居中、较大字号
+            self.styles.add(ParagraphStyle(
+                name='ChineseTitle',
+                fontName='STSong-Light',
+                fontSize=20,
+                leading=28,
+                alignment=1,  # 居中
+                textColor=colors.red,
+                spaceAfter=10,
+                spaceBefore=10,
+                bold=True
+            ))
+            # 副标题：黑色、居中
+            self.styles.add(ParagraphStyle(
+                name='ChineseSubtitle',
+                fontName='STSong-Light',
+                fontSize=14,
+                leading=20,
+                alignment=1,  # 居中
+                textColor=colors.black,
+                spaceAfter=10
+            ))
+            # 一级标题：黑色、加粗、左对齐
+            self.styles.add(ParagraphStyle(
+                name='ChineseHeading1',
+                fontName='STSong-Light',
+                fontSize=13,
+                leading=18,
+                alignment=0,  # 左对齐
+                textColor=colors.black,
+                spaceBefore=10,
+                spaceAfter=6,
+                bold=True
+            ))
+            # 加粗样式
+            self.styles.add(ParagraphStyle(
+                name='ChineseBold',
+                fontName='STSong-Light',
+                fontSize=11,
+                leading=18,
+                alignment=0,
+                textColor=colors.black,
+                spaceAfter=3,
+                spaceBefore=3,
+                bold=True
+            ))
+            # 正文：黑色、常规、首行缩进
+            self.styles.add(ParagraphStyle(
+                name='ChineseContent',
+                fontName='STSong-Light',
+                fontSize=11,
+                leading=18,
+                alignment=0,
+                firstLineIndent=24,
+                textColor=colors.black,
+                spaceAfter=3
+            ))
+            # 列表项：无缩进
+            self.styles.add(ParagraphStyle(
+                name='ChineseList',
+                fontName='STSong-Light',
+                fontSize=11,
+                leading=18,
+                alignment=0,
+                leftIndent=12,
+                textColor=colors.black,
+                spaceAfter=2
+            ))
+            self.styles.add(ParagraphStyle(
+                name='Header',
+                fontName='STSong-Light',
+                fontSize=9,
+                alignment=1
+            ))
+            self.styles.add(ParagraphStyle(
+                name='Footer',
+                fontName='STSong-Light',
+                fontSize=9,
+                alignment=1
+            ))
+        except Exception as e:
+            logging.error(f"设置样式失败: {str(e)}")
+            # 使用默认样式
+            self.styles.add(ParagraphStyle(
+                name='ChineseTitle',
+                fontSize=20,
+                leading=28,
+                alignment=1,
+                textColor=colors.red,
+                spaceAfter=10,
+                spaceBefore=10,
+                bold=True
+            ))
     
     def load_excel_data(self):
         """加载Excel数据"""
@@ -520,14 +545,6 @@ def generate_word_report(excel_path, output_path, issue, date_str):
             p.paragraph_format.space_after = Pt(1)
             p.paragraph_format.first_line_indent = Cm(0)
             p.paragraph_format.line_spacing = 1.5
-            # 新增：展示项目说明（上周三至本周二工作内容）
-            if isinstance(row['last_week_work'], list):
-                filtered_tasks = [remove_leading_number(task) for task in row['last_week_work'] if task.strip()]
-                for idx, task in enumerate(filtered_tasks, 1):
-                    para = doc.add_paragraph(f'{idx}、{task}')
-                    para.paragraph_format.first_line_indent = Cm(0)
-                    para.paragraph_format.space_after = Pt(1)
-                    para.paragraph_format.line_spacing = 1.5
     # 三级标题
     p = doc.add_paragraph()
     run = p.add_run('2)入池工作')

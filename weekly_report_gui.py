@@ -11,7 +11,7 @@ from weekly_report_generator import WeeklyReportGenerator
 class WeeklyReportGUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("周报生成器")
+        self.setWindowTitle("综合组周报生成器")
         self.setMinimumSize(800, 600)
         
         # 创建主窗口部件
