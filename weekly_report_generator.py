@@ -545,6 +545,21 @@ def generate_word_report(excel_path, output_path, issue, date_str):
             p.paragraph_format.space_after = Pt(1)
             p.paragraph_format.first_line_indent = Cm(0)
             p.paragraph_format.line_spacing = 1.5
+            # 添加项目具体工作内容
+            if isinstance(row['last_week_work'], list):
+                filtered_tasks = [remove_leading_number(task) for task in row['last_week_work'] if task.strip()]
+                for idx, task in enumerate(filtered_tasks, 1):
+                    para = doc.add_paragraph(f'{idx}、{task}')
+                    # 设置列表样式，与PDF的ChineseList类似
+                    para.paragraph_format.left_indent = Cm(0.5) # 根据需要调整缩进
+                    para.paragraph_format.first_line_indent = Cm(0)
+                    para.paragraph_format.space_after = Pt(1)
+                    para.paragraph_format.line_spacing = 1.5
+                    # 设置字体和字号，与PDF的ChineseList类似
+                    for r in para.runs:
+                        r.font.size = Pt(11)
+                        r.font.name = '宋体' # 或其他中文字体
+                        r._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
     # 三级标题
     p = doc.add_paragraph()
     run = p.add_run('2)入池工作')
